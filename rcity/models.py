@@ -25,9 +25,7 @@ class Replay(db.Model):
 
     @staticmethod
     def newest(num):
-        return Bookmark.query.order_by(desc(Bookmark.date)).limit(num)
+        return Replay.query.order_by(Replay.date.desc()).limit(num)
 
     def __repr__(self):
-        return "<Bookmark '{}': '{}'>".format(self.description, self.url)
-
-
+        return "<Replay '{}': '{}'>".format(self.description, self.url)
