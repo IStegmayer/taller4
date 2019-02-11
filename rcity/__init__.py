@@ -4,10 +4,11 @@ from flask import Flask
 from flask_cors import CORS, cross_origin
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_login import LoginManager
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
-UPLOAD_FOLDER = '.'
+UPLOAD_FOLDER = '.\\rcity\\static\\files'
 
 
 #Config de la aplicacion
@@ -20,8 +21,12 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 #Config de la db
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'rcity.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
+
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
+
+login = LoginManager(app)
+login.login_view = 'login'
 
 
 if __name__ == '__main__':
@@ -30,4 +35,4 @@ if __name__ == '__main__':
 from . import views, apis
 
 
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
