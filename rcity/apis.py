@@ -1,13 +1,20 @@
 from rcity import app, db
 
 import os
-from flask import flash, request, redirect, url_for, session, jsonify, abort
+from flask import flash, request, redirect, url_for, session, jsonify, abort, send_file, make_response
 from werkzeug.utils import secure_filename
 from flask_cors import CORS, cross_origin
 from flask_login import current_user, login_user, logout_user, login_required
 
 from .models import User, Replay
 import logging
+
+
+################# FUNCIONES AUXILIARES ######################
+
+############################################################
+
+
 
 
 @app.route('/api/upload', methods=['POST'])
@@ -87,12 +94,25 @@ def logout():
     logout_user()
     return redirect(url_for('index'))
 
-@app.route('/api/get-replays', methods=['GET'])
-def get_replays():
+@app.route('/api/get-replays/<user>', methods=['GET'])
+def get_replays(user):
+    import json
     replays = Replay.query.all()
     rbuffer = [r.serialize for r in replays]
-    for r in rbuffer:
-        r['liked'] = 'Unlike'
+    try:
+        user = User.query.filter_by(username=user).first()
+        liked_replays = json.loads(user.liked_replays)
+        if isinstance(liked_replays, dict):
+            liked_replays = liked_replays['liked_replays']
+        for r in rbuffer:
+            if r['name'] in liked_replays:
+                r['liked'] = 'Like'
+            else:
+                r['liked'] = 'Unlike'
+    except:
+        for r in rbuffer:
+            r['liked'] = 'Unlike'
+    
     return jsonify({'msg': 'holo', 'replays': rbuffer}), 201
 
 @app.route('/api/get-user-replays/<user>', methods=['GET'])
@@ -100,11 +120,85 @@ def get_user_replays(user):
     from sqlalchemy import func
     replays = Replay.query.filter(func.lower(Replay.user_name) == func.lower(user)).all()
     rbuffer = [r.serialize for r in replays]
+    user = User.query.filter_by(username=user).first()
     for r in rbuffer:
-        r['liked'] = 'Unlike'
-    print(rbuffer)
+        if r['name'] in user.liked_replays:
+            r['liked'] = 'Like'
+        else:
+            r['liked'] = 'Unlike'
+    return jsonify({'msg': 'holo', 'replays': rbuffer}), 201
+
+@app.route('/api/get-filtered-user-replays/<user>/<filterino>', methods=['GET'])
+def get_filtered_user_replays(user, filterino):
+    from sqlalchemy import func
+    replays = Replay.query.filter(func.lower(Replay.user_name) == func.lower(user)).filter(Replay.tag == filterino).all()
+    rbuffer = [r.serialize for r in replays]
+    user = User.query.filter_by(username=user).first()
+    for r in rbuffer:
+        if r['name'] in user.liked_replays:
+            r['liked'] = 'Like'
+        else:
+            r['liked'] = 'Unlike'
+    return jsonify({'msg': 'holo', 'replays': rbuffer}), 201
+
+@app.route('/api/get-filtered-replays/<user>/<filterino>', methods=['GET'])
+def get_filtered_replays(user, filterino):
+    from sqlalchemy import func
+    import json
+    replays = Replay.query.filter(Replay.tag == filterino).all()
+    rbuffer = [r.serialize for r in replays]
+    try:
+        user = User.query.filter_by(username=user).first()
+        liked_replays = json.loads(user.liked_replays)
+        if isinstance(liked_replays, dict):
+            liked_replays = liked_replays['liked_replays']
+        for r in rbuffer:
+            if r['name'] in liked_replays:
+                r['liked'] = 'Like'
+            else:
+                r['liked'] = 'Unlike'
+    except:
+        for r in rbuffer:
+            r['liked'] = 'Unlike'
+
     return jsonify({'msg': 'holo', 'replays': rbuffer}), 201
     
+@app.route('/api/replay/<rname>', methods=['GET'])
+def replay(rname):
+    response = make_response(send_file('./static/files/'+rname+'.replay', as_attachment=True, attachment_filename=rname+'.replay', cache_timeout=0))
+    return response
+
+
+@app.route('/api/modify-likes/<likeUnlike>', methods=['POST'])
+def modify_likes(likeUnlike):
+    import json
+
+    # Update liked_replays
+    userino = User.query.filter_by(username=request.form['userName']).first()
+    liked_replays = json.loads(userino.liked_replays)
+    if isinstance(liked_replays, dict):
+         liked_replays = liked_replays['liked_replays']
+
+    if likeUnlike == 'like':
+        liked_replays.append(request.form['replayName'])
+    else:
+        liked_replays.remove(request.form['replayName'])
+
+    userino.liked_replays = json.dumps(liked_replays)
+
+    # Update replay likes
+    replayerino = Replay.query.filter_by(replayFile=request.form['replayName']+'.replay').first()
+    if likeUnlike == 'like':
+        replayerino.likes = replayerino.likes + 1 
+    else:
+        replayerino.likes = replayerino.likes - 1 
+
+
+    db.session.commit()
+
+
+    return 'True'
+
 
 @app.route('/api/userino', methods=['GET', 'POST'])
 def userino():
@@ -118,4 +212,4 @@ def userino():
 
 @app.errorhandler(404)
 def page_not_found(e):
-    return jsonify(error=404, text="asdf"), 404
+    return jsonify(error=404, text=str(e)), 404
