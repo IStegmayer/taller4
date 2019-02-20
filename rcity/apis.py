@@ -33,7 +33,7 @@ def fileUpload():
     replay = Replay(replayFile=filename,
                     description=request.form['desc'],
                     tag=request.form['toggle'],
-                    user_name='IStegmayer')
+                    user_name=request.form['username'])
     db.session.add(replay)
     db.session.commit()
 
@@ -93,6 +93,16 @@ def get_replays():
     rbuffer = [r.serialize for r in replays]
     for r in rbuffer:
         r['liked'] = 'Unlike'
+    return jsonify({'msg': 'holo', 'replays': rbuffer}), 201
+
+@app.route('/api/get-user-replays/<user>', methods=['GET'])
+def get_user_replays(user):
+    from sqlalchemy import func
+    replays = Replay.query.filter(func.lower(Replay.user_name) == func.lower(user)).all()
+    rbuffer = [r.serialize for r in replays]
+    for r in rbuffer:
+        r['liked'] = 'Unlike'
+    print(rbuffer)
     return jsonify({'msg': 'holo', 'replays': rbuffer}), 201
     
 
