@@ -82,7 +82,7 @@ virtualenv==16.3.0
 virtualenv-clone==0.5.1
 wcwidth==0.1.7
 webencodings==0.5.1
-Werkzeug==0.14.1
+Werkzeug==0.15.3
 wrapt==1.10.11
 WTForms==2.2.1
 WTForms-Alchemy==0.16.8
