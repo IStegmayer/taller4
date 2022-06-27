@@ -64,7 +64,7 @@ python-dateutil==2.7.5
 python-editor==1.0.3
 pytz==2018.9
 pywin32==223
-reportlab==3.4.0
+reportlab==3.5.55
 requests==2.21.0
 scipy==1.1.0
 six==1.12.0
